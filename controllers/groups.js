@@ -1,4 +1,5 @@
 const express = require('express');
+const router = express.Router();
 const { isEmpty, get } = require('lodash');
 const { isValidObjectId } = require("mongoose");
 
@@ -211,4 +212,5 @@ router.post("/group/:groupId/leave", verifyAuthToken, async (req, res) => {
     });
   }
 });
+
 module.exports = router;

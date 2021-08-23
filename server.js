@@ -4,6 +4,7 @@ const mongoose = require("mongoose");
 
 // REQUIRE ROUTERS
 const userRouter = require("./controllers/users"); 
+const groupRouter = require("./controllers/groups");
 
 const app = express();
 
@@ -25,6 +26,7 @@ app.use(cors());
 
 // FOR ROUTERS
 app.use(userRouter);
+app.use(groupRouter);
 
 
 // FOR SOCKETS
