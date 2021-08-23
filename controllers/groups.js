@@ -44,7 +44,7 @@ router.post("/group/create", verifyAuthToken, async (req, res) => {
     }).save();
 
     user.groupsJoined.push(newGroup._id);
-    user.save();
+    await user.save();
     
     res.json(newGroup);
   } catch (error) {
@@ -98,7 +98,7 @@ router.get("/groups/me", verifyAuthToken, async (req, res) => {
     if (isEmpty(user.groupsJoined)) {
       return res.json([]);
     }
-    
+
     const findOptions = {
       $or: []
     };
@@ -117,4 +117,98 @@ router.get("/groups/me", verifyAuthToken, async (req, res) => {
   };
 });
 
+router.post("/group/:groupId/join", verifyAuthToken, async (req, res) => {
+  const body = req.body;
+  const user = req.user;
+  const groupId = req.params.groupId;
+
+  let validatedBody;
+  //ADD VALIDATION OF INPUTS
+  //ASSUME AT THIS MOMENT THAT THE INPUTS ARE CORRECT
+  validatedBody = body;
+
+  if (!isValidObjectId(groupId)) {
+    return res.status(HTTP_CODES.UNPROCESSABLE_ENTITY).json({
+      message: ERROR_MESSAGES.GROUP.INVALID_GROUP_ID
+    })
+  }
+
+  try {
+    const group = await GROUP.findOne({ _id: groupId });
+
+    if (isEmpty(group)) {
+      return res.status(HTTP_CODES.NOT_FOUND).json({
+        message: ERROR_MESSAGES.GROUP.NO_GROUP_FOUND
+      });
+    }
+
+    if (!isEmpty(group.password)) {
+      let isCorrectPassword = await comparePassword(validatedBody.password, group.password);
+
+      if (!isCorrectPassword) {
+        return res.status(HTTP_CODES.UNAUTHORIZED).json({
+          message: ERROR_MESSAGES.USER.INCORRECT_PASSWORD
+        });
+      }
+    }
+
+    if (!group.currentUsers.includes(user._id)) {
+      user.groupsJoined.push(group._id);
+      await user.save();
+
+      group.currentUsers.push(user._id);
+      await group.save();
+    }
+
+    return res.json({
+      message: `${user.fullName} joined the group.`
+    });
+    
+  } catch (error) {
+    return res.status(HTTP_CODES.SERVER_ERROR).json({
+      message: ERROR_MESSAGES.SERVER.DEFAULT_SERVER_ERROR
+    });
+  }
+});
+
+router.post("/group/:groupId/leave", verifyAuthToken, async (req, res) => {
+  const body = req.body;
+  const user = req.user;
+  const groupId = req.params.groupId;
+
+  let validatedBody;
+  //ADD VALIDATION OF INPUTS
+  //ASSUME AT THIS MOMENT THAT THE INPUTS ARE CORRECT
+  validatedBody = body;
+
+  if (!isValidObjectId(groupId)) {
+    return res.status(HTTP_CODES.UNPROCESSABLE_ENTITY).json({
+      message: ERROR_MESSAGES.GROUP.INVALID_GROUP_ID
+    })
+  }
+
+  try {
+    const group = await GROUP.findOne({ _id: groupId });
+
+    if (isEmpty(group)) {
+      return res.status(HTTP_CODES.NOT_FOUND).json({
+        message: ERROR_MESSAGES.GROUP.NO_GROUP_FOUND
+      });
+    }
+
+    group.currentUsers = group.currentUsers.filter(userId => userId,toString() != user._id.toString());
+    await group.save();
+
+    user.groupsJoined = user.groupsJoined.filter(groupId => groupId.toString() != group._id.toString());
+    await user.save();
+
+    return res.json({
+      message: `${user.fullName} left the group.`
+    });
+  } catch (error) {
+    return res.status(HTTP_CODES.SERVER_ERROR).json({
+      message: ERROR_MESSAGES.SERVER.DEFAULT_SERVER_ERROR
+    });
+  }
+});
 module.exports = router;

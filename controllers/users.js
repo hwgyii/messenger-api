@@ -88,7 +88,7 @@ router.post("/user/login", async (req, res) => {
 
     if (isEmpty(existingUser.authToken)) {
       existingUser.authToken = uniqid();
-      existingUser.save();
+      await existingUser.save();
     }
 
     const userDetails = {
@@ -111,7 +111,7 @@ router.post("/user/login", async (req, res) => {
 router.post("/user/logout", verifyAuthToken, async (req, res) => {
   try {
     req.user.authToken = "";
-    req.user.save();
+    await req.user.save();
     return res.json({
       message: "User logged out."
     });
